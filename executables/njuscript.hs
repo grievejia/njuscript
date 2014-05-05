@@ -1,15 +1,18 @@
-import NScriptParser.Lexer
+import NScriptParser.ParserMonad
 import NScriptParser.Parser
 import NScriptParser.AST
 
+import NScriptInterpreter.Interpreter
+
 import System.Environment
 
-{-|This is the main function of the program-}
+{-|This is the main function of the interpreter-}
 main :: IO()
 main =
   do
     text <- getContents
     let rs = runP parser text 0
     case rs of
-      OkP ast -> print ast
       FailedP errMsg -> putStrLn errMsg
+      OkP ast -> print $ exec ast
+      

@@ -3,31 +3,45 @@
  -}
 module NScriptParser.Lexer where
 
+import NScriptParser.ParserMonad
 import NScriptParser.AST
 import Data.Char (isSpace, isAlpha, isDigit)
 
-{-|
- Define exception monad to do error handling as well as line numbers
--}
-data ParseResult a = OkP a | FailedP String
-type LineNumber = Int
-newtype ParseAction a = ParseAction (String -> LineNumber -> ParseResult a)
+{-|The Token datatype -}
+data Token
+      = TokenLet
+      | TokenIn
+      | TokenLambda
+      | TokenFun
+      | TokenInt Int
+      | TokenStr String
+      | TokenId String
+      | TokenEq
+      | TokenPlus
+      | TokenMinus
+      | TokenMul
+      | TokenDiv
+      | TokenLP
+      | TokenRP
+      | TokenEOF
+      deriving Eq
 
-runP :: ParseAction a -> String -> LineNumber -> ParseResult a
-runP (ParseAction f) = f
-
-instance Monad ParseAction where
-  return m = ParseAction $ \_ _ -> OkP m
-  m >>= k = ParseAction $ \s l -> case runP m s l of
-    OkP a -> runP (k a) s l
-    FailedP err -> FailedP err
-  fail s = ParseAction $ \_ _ -> FailedP s
-
-getLineNo :: ParseAction LineNumber
-getLineNo = ParseAction $ \_ l -> OkP l
-
-returnToken :: (t -> ParseAction a) -> t -> String -> LineNumber -> ParseResult a
-returnToken cont tok = runP (cont tok)
+instance Show Token where
+  show TokenLet = "let"
+  show TokenIn = "in"
+  show TokenLambda = "lambda"
+  show TokenFun = "fun"
+  show (TokenInt i) = show i
+  show (TokenStr str) = "\"" ++ str ++ "\""
+  show (TokenId str) = str
+  show TokenEq = "="
+  show TokenPlus = "+"
+  show TokenMinus = "-"
+  show TokenMul = "*"
+  show TokenDiv = "/"
+  show TokenLP = "("
+  show TokenRP = ")"
+  show TokenEOF = "EOF"
 
 {-|
  Monadic lexer
@@ -47,6 +61,7 @@ lexer cont = ParseAction lexer1 where
       | isSpace c = returnToken lexer cont cs
       | isAlpha c = lexId cont input
       | isDigit c = lexNum cont input
+      | c == '"' = lexStr cont cs
     lexer1 (c:cs) = lexError ("unrecognized symbol " ++ [c]) cs
 
 lexNum cont s = returnToken cont (TokenInt (read num)) rest
@@ -56,6 +71,13 @@ lexId cont s =
   case span isAlpha s of
     ("let", rest) -> returnToken cont TokenLet rest
     ("in", rest)  -> returnToken cont TokenIn rest
-    (var, rest)   -> returnToken cont (TokenVar var) rest
+    ("lambda", rest) -> returnToken cont TokenLambda rest
+    ("fun", rest) -> returnToken cont TokenFun rest
+    (var, rest)   -> returnToken cont (TokenId var) rest
+
+lexStr cont s = returnToken cont (TokenStr var) (tail rest)
+  where
+    (var, rest) = span (/= '\"') s
+
 
 lexError errMsg = runP (getLineNo >>= \l -> fail ("Line " ++ show l ++ ": " ++ errMsg))

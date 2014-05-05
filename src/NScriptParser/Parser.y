@@ -7,7 +7,7 @@
 module NScriptParser.Parser (parser) where
 import NScriptParser.AST
 import NScriptParser.Lexer
-
+import NScriptParser.ParserMonad
 
 }
 
@@ -18,8 +18,11 @@ import NScriptParser.Lexer
 %token 
   let   { TokenLet }
   in    { TokenIn }
+  lam   { TokenLambda }
+  fun   { TokenFun }
   int   { TokenInt $$ }
-  var   { TokenVar $$ }
+  str   { TokenStr $$ }
+  id    { TokenId $$ }
   '='   { TokenEq }
   '+'   { TokenPlus }
   '-'   { TokenMinus }
@@ -38,14 +41,17 @@ import NScriptParser.Lexer
 %%
 
 Exp :
-      let var '=' Exp in Exp    { Let $2 $4 $6 }
+      let id '=' Exp in Exp     { FunApp (Lambda $2 $6) $4 }
+    | lam id Exp                { Lambda $2 $3 }
     | Exp '+' Exp               { Plus $1 $3 }
     | Exp '-' Exp               { Minus $1 $3 }
     | Exp '*' Exp               { Mul $1 $3 }
     | Exp '/' Exp               { Div $1 $3 }
     | '(' Exp ')'               { $2 }
-    | int                       { Int $1 }
-    | var                       { Var $1 }
+    | Exp Exp                   { FunApp $1 $2 }
+    | int                       { IntLit $1 }
+    | str                       { StrLit $1 }
+    | id                        { Var $1 }
 
 {
 
