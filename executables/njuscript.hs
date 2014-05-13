@@ -14,5 +14,5 @@ main =
     let rs = runP parser text 0
     case rs of
       FailedP errMsg -> putStrLn errMsg
-      OkP ast -> print $ exec ast
+      OkP (ExpStmt ast) -> print $ exec ast
       
