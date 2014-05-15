@@ -16,26 +16,16 @@ process line env =
       do
        putStrLn $ "[Parser error] " ++ errMsg
        return env
-    OkP (ExpStmt exp) ->
-      case eval exp env of
-        Left errMsg -> 
+    OkP prog ->
+      case evalProg prog env of
+        (Left errMsg, env) -> 
           do
             putStrLn $ "[Evaluation error] " ++ errMsg
             return env
-        Right v ->
+        (Right v, env) ->
           do
             putStrLn $ show v
             return env
-    OkP (DefStmt id exp) ->
-      case eval exp env of
-        Left errMsg ->
-          do
-            putStrLn $ "[Evaluation error] " ++ errMsg
-            return env
-        Right v ->
-          do
-            putStrLn $ id ++ " := " ++ show v
-            return $ insertEnv env id v
   
 
 {-|This is the main function of the interpreter-}

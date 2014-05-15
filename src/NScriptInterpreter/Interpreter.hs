@@ -1,4 +1,4 @@
-module NScriptInterpreter.Interpreter (Env, emptyEnv, insertEnv, exec, eval) where
+module NScriptInterpreter.Interpreter (Env, emptyEnv, insertEnv, exec, evalProg) where
 
 import NScriptParser.AST
 import qualified Data.Map as Map
@@ -104,11 +104,12 @@ eval (Compare Greater e1 e2) env = evalBinaryExp valueGt e1 e2 env
 eval (Compare GreaterEq e1 e2) env = evalBinaryExp valueGe e1 e2 env
 eval (Compare Equal e1 e2) env = evalBinaryExp valueEq e1 e2 env
 eval (Compare NotEqual e1 e2) env = evalBinaryExp valueNe e1 e2 env
-eval (Let id exp body) env = 
-  case eval exp env of
-    Left errMsg -> Left errMsg
-    Right idV ->
-      eval body (insertEnv env id idV)
+eval (Let id exp body) env = eval body newEnv
+  where
+    val = eval exp env
+    newEnv = case val of
+      Left _ -> env
+      Right v -> insertEnv env id v
 eval (Lambda id exp) env = Right $ CloVal id exp env
 eval (FunApp funExp argExp) env =
   case eval funExp env of
@@ -129,6 +130,18 @@ eval (If condExp thenExp elseExp) env =
         BoolVal True -> eval thenExp env
         BoolVal False -> eval elseExp env
         _ -> Left $ "Trying to use a non-bool value " ++ show condV ++ " as an if condition!"
+
+evalProg :: Program -> Env -> (EvalResult, Env)
+evalProg (DefStmt id exp) env = (val, newEnv)
+  where
+    val = eval exp env
+    newEnv =
+      case val of
+        Left _ -> env
+        Right v -> insertEnv env id v
+
+evalProg (ExpStmt exp) env = (eval exp env, env)
+
   
 exec :: Exp -> EvalResult
 exec exp = eval exp emptyEnv
