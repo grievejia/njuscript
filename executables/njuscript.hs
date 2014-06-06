@@ -2,6 +2,8 @@ import NScriptParser.ParserMonad
 import NScriptParser.Parser
 import NScriptParser.AST
 
+import NScriptInterpreter.Value
+import NScriptInterpreter.InterpreterMonad
 import NScriptInterpreter.Interpreter
 
 import System.Environment

@@ -3,6 +3,8 @@ module Main where
 import NScriptParser.Parser
 import NScriptParser.ParserMonad
 import NScriptParser.AST
+import NScriptInterpreter.Value
+import NScriptInterpreter.InterpreterMonad
 import NScriptInterpreter.Interpreter
 
 import Data.Char (isSpace, isAlpha, isDigit)
@@ -18,9 +20,9 @@ process line env =
        return env
     OkP prog ->
       case evalProg prog env of
-        (Left errMsg, env) -> 
+        (Left err, env) -> 
           do
-            putStrLn $ "[Evaluation error] " ++ errMsg
+            putStrLn $ "[Evaluation error] " ++ show err
             return env
         (Right v, env) ->
           do
