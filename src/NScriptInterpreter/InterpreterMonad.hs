@@ -43,4 +43,3 @@ type EvalMonad = Either EvalError
 
 -- | This is a monad that encapsulate the environment
 type EnvMonad = ReaderT Env EvalMonad
-type ReplMonad = StateT Env EvalMonad

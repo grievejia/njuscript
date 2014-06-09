@@ -9,33 +9,38 @@ import NScriptInterpreter.Interpreter
 
 import Data.Char (isSpace, isAlpha, isDigit)
 import Control.Monad.Trans
+import Control.Monad.State
 import System.Console.Haskeline
 
-process :: String -> Env -> IO Env
-process line env =
-  case runP parser line 0 of
-    FailedP errMsg ->
-      do
-       putStrLn $ "[Parser error] " ++ errMsg
-       return env
-    OkP prog ->
-      case evalProg prog env of
-        (Left err, env) -> 
-          do
-            putStrLn $ "[Evaluation error] " ++ show err
-            return env
-        (Right v, env) ->
-          do
-            putStrLn $ show v
-            return env
-  
+type ReplMonadT = StateT Env (InputT IO)
 
 {-|This is the main function of the interpreter-}
 main :: IO()
-main = runInputT defaultSettings (loop emptyEnv)
+main = runInputT defaultSettings $ evalStateT loop emptyEnv
 	where
-   loop env = do
-    minput <- getInputLine "NjuScript> "
-    case minput of
-      Nothing -> outputStrLn "Bye-bye!"
-      Just input -> (liftIO $ process input env) >>= loop
+    loop :: ReplMonadT ()
+    loop = do
+      minput <- lift $ getInputLine "NjuScript> "
+      case minput of
+        Nothing -> lift $ outputStrLn "Bye-bye!"
+        Just input -> 
+          do
+            let line = unwords $ words input
+            case line of
+              "" -> loop
+              _ ->
+                do
+                  case runP parser line 0 of
+                    FailedP errMsg ->
+                      liftIO $ putStrLn $ "[Parser error] " ++ errMsg
+                    OkP prog ->
+                      do
+                        env <- get
+                        case evalProg prog env of
+                          (Left err, _) -> 
+                            liftIO $ putStrLn $ "[Evaluation error] " ++ show err
+                          (Right v, newEnv) ->
+                            do
+                              liftIO $ putStrLn $ show v
+                              put newEnv
+                  loop
